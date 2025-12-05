@@ -10,6 +10,8 @@ const App = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [atsContent, setAtsContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCopySuccess, setShowCopySuccess] = useState(false);
+  const [showPrintTip, setShowPrintTip] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper: Convert File to Base64
@@ -107,24 +109,39 @@ const App = () => {
       setAtsContent(cleanHtml || "<p>Could not generate content.</p>");
     } catch (err: any) {
       console.error(err);
-      setError("Failed to process the resume. Please try again. " + (err.message || ""));
+      setError("Failed to process the resume. " + (err.message || "Please try again."));
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleDownloadPDF = () => {
-    window.print();
+    setShowPrintTip(true);
+    setTimeout(() => {
+      window.print();
+      // Hide tip after print dialog closes (simulated delay)
+      setTimeout(() => setShowPrintTip(false), 2000);
+    }, 500);
+  };
+
+  const copyToClipboard = () => {
+    if (atsContent) {
+      navigator.clipboard.writeText(atsContent).then(() => {
+        setShowCopySuccess(true);
+        setTimeout(() => setShowCopySuccess(false), 2000);
+      });
+    }
   };
 
   const reset = () => {
     setFile(null);
     setAtsContent(null);
     setError(null);
+    setShowPrintTip(false);
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center py-10 px-4 md:px-8">
+    <div className="min-h-screen flex flex-col items-center py-10 px-4 md:px-8 print:p-0 print:block">
       {/* Header */}
       <header className="mb-10 text-center no-print">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600 text-white mb-4 shadow-lg">
@@ -139,11 +156,11 @@ const App = () => {
       </header>
 
       {/* Main Content Area */}
-      <main className="w-full max-w-4xl">
+      <main className="w-full max-w-4xl print:max-w-none print:w-full">
         
         {/* Step 1: Upload */}
         {!atsContent && (
-          <div className={`transition-all duration-300 ${isProcessing ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+          <div className={`transition-all duration-300 no-print ${isProcessing ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
             <div
               className="border-2 border-dashed border-gray-300 rounded-2xl bg-white p-12 text-center hover:border-blue-500 hover:bg-blue-50 transition-colors cursor-pointer shadow-sm"
               onDragOver={(e) => e.preventDefault()}
@@ -207,7 +224,7 @@ const App = () => {
 
         {/* Processing State */}
         {isProcessing && (
-          <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+          <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center no-print">
             <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
             <h2 className="text-2xl font-bold text-gray-800 animate-pulse">Analyzing Resume...</h2>
             <p className="text-gray-500 mt-2">Extracting text and restructuring for ATS compliance</p>
@@ -226,7 +243,15 @@ const App = () => {
                 <i className="fa-solid fa-arrow-left"></i> Convert Another
               </button>
               
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3 justify-center">
+                 <button
+                  onClick={copyToClipboard}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2.5 px-6 rounded-lg shadow-sm transition-all flex items-center gap-2"
+                >
+                   {showCopySuccess ? <i className="fa-solid fa-check text-green-600"></i> : <i className="fa-solid fa-code"></i>}
+                   {showCopySuccess ? "Copied!" : "Copy HTML"}
+                </button>
+                
                 <button
                   onClick={handleDownloadPDF}
                   className="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2"
@@ -236,13 +261,20 @@ const App = () => {
               </div>
             </div>
 
+            {/* Print Tip Toast */}
+            {showPrintTip && (
+              <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-[100] bg-gray-900 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-bounce no-print">
+                <i className="fa-solid fa-print"></i>
+                <span>Please select <strong>"Save as PDF"</strong> in the print dialog.</span>
+              </div>
+            )}
+
             {/* Paper Preview */}
             <div 
               id="resume-preview-container"
               className="bg-white text-black p-[0.5in] sm:p-[0.75in] shadow-2xl mx-auto min-h-[11in] w-full max-w-[8.5in] border border-gray-200"
             >
-              {/* We render the HTML directly. In a real app we might sanitize this, 
-                  but the source is our trusted LLM instruction. */}
+              {/* We render the HTML directly. */}
               <div 
                 className="ats-content text-sm sm:text-base"
                 dangerouslySetInnerHTML={{ __html: atsContent }} 
@@ -250,7 +282,7 @@ const App = () => {
             </div>
             
             <p className="text-center text-gray-400 text-sm mt-8 mb-12 no-print">
-              Tip: When saving, ensure "Save as PDF" is selected as the destination.
+              Tip: The standard ATS format is intentionally simple to ensure maximum readability by robotic systems.
             </p>
           </div>
         )}

@@ -21,30 +21,42 @@
         }
         body {
           background-color: white;
+          -webkit-print-color-adjust: exact;
         }
-        /* Hide everything by default */
-        body * {
-          visibility: hidden;
-        }
-        /* Only show the resume preview container */
-        #resume-preview-container, #resume-preview-container * {
-          visibility: visible;
-        }
-        /* Position it correctly */
-        #resume-preview-container {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
-          margin: 0;
-          padding: 0;
-          box-shadow: none;
-          border: none;
-          background: white;
-        }
-        /* Hide tooltips, buttons, etc explicitly if inside container */
+        
+        /* robustly hide non-print elements */
         .no-print {
           display: none !important;
+        }
+
+        /* Reset layout containers for print */
+        #root, body, html {
+          height: auto;
+          overflow: visible;
+        }
+
+        /* Ensure the preview container takes full width and resets margins */
+        #resume-preview-container {
+          width: 100% !important;
+          max-width: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+          border: none !important;
+          background: white !important;
+          position: static !important;
+          overflow: visible !important;
+        }
+
+        /* Force black text for best contrast */
+        .ats-content, .ats-content * {
+          color: black !important;
+        }
+        
+        /* Ensure links don't look like blue blobs if color print is off, but underline them */
+        .ats-content a {
+          text-decoration: underline;
+          color: black !important;
         }
       }
 
@@ -64,7 +76,11 @@
       }
       
       /* Typography for the Resume Content */
+      .ats-content {
+        font-family: 'Times New Roman', Times, serif; /* Standard ATS font */
+      }
       .ats-content h2 {
+        font-family: 'Inter', sans-serif; /* Keep headers clean */
         font-size: 1.25rem;
         font-weight: 700;
         text-transform: uppercase;
@@ -94,10 +110,6 @@
       .ats-content li {
         margin-bottom: 0.25rem;
         line-height: 1.4;
-      }
-      .ats-content a {
-        color: #2563eb;
-        text-decoration: underline;
       }
     </style>
   <script type="importmap">

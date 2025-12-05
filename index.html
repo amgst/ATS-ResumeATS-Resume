@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ATS Resume Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f3f4f6;
+      }
+      
+      /* Print specific styles for high-quality PDF generation */
+      @media print {
+        @page {
+          margin: 0.5in;
+          size: auto;
+        }
+        body {
+          background-color: white;
+        }
+        /* Hide everything by default */
+        body * {
+          visibility: hidden;
+        }
+        /* Only show the resume preview container */
+        #resume-preview-container, #resume-preview-container * {
+          visibility: visible;
+        }
+        /* Position it correctly */
+        #resume-preview-container {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          margin: 0;
+          padding: 0;
+          box-shadow: none;
+          border: none;
+          background: white;
+        }
+        /* Hide tooltips, buttons, etc explicitly if inside container */
+        .no-print {
+          display: none !important;
+        }
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      
+      /* Typography for the Resume Content */
+      .ats-content h2 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        border-bottom: 2px solid #000;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.25rem;
+        color: #1a1a1a;
+      }
+      .ats-content h3 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-top: 1rem;
+        margin-bottom: 0.25rem;
+        color: #333;
+      }
+      .ats-content p {
+        margin-bottom: 0.5rem;
+        line-height: 1.5;
+        color: #444;
+      }
+      .ats-content ul {
+        list-style-type: disc;
+        padding-left: 1.25rem;
+        margin-bottom: 0.75rem;
+      }
+      .ats-content li {
+        margin-bottom: 0.25rem;
+        line-height: 1.4;
+      }
+      .ats-content a {
+        color: #2563eb;
+        text-decoration: underline;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

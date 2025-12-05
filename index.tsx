@@ -4,8 +4,9 @@ import { GoogleGenAI } from "@google/genai";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-// Get API key from environment
-const API_KEY = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+// Get API key from environment (supports both Vite's import.meta.env and process.env)
+const API_KEY = (import.meta.env?.VITE_GEMINI_API_KEY || import.meta.env?.GEMINI_API_KEY || 
+                 (typeof process !== 'undefined' && (process.env?.API_KEY || process.env?.GEMINI_API_KEY)) || '') as string;
 
 // Initialize Gemini API (will throw error if API key is missing, handled in component)
 let ai: GoogleGenAI | null = null;

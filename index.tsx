@@ -1,9 +1,21 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { GoogleGenAI } from "@google/genai";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
-// Initialize Gemini API
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Get API key from environment
+const API_KEY = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+
+// Initialize Gemini API (will throw error if API key is missing, handled in component)
+let ai: GoogleGenAI | null = null;
+if (API_KEY && API_KEY !== 'your_api_key_here' && API_KEY !== '') {
+  try {
+    ai = new GoogleGenAI({ apiKey: API_KEY });
+  } catch (err) {
+    console.error('Failed to initialize GoogleGenAI:', err);
+  }
+}
 
 const App = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -11,7 +23,6 @@ const App = () => {
   const [atsContent, setAtsContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showCopySuccess, setShowCopySuccess] = useState(false);
-  const [showPrintTip, setShowPrintTip] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper: Convert File to Base64
@@ -56,6 +67,12 @@ const App = () => {
 
   const processResume = async () => {
     if (!file) return;
+
+    // Check if API key is configured
+    if (!ai || !API_KEY || API_KEY === 'your_api_key_here' || API_KEY === '') {
+      setError("API Key not configured. Please create a .env file in the project root with: GEMINI_API_KEY=your_actual_api_key");
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
@@ -115,13 +132,71 @@ const App = () => {
     }
   };
 
-  const handleDownloadPDF = () => {
-    setShowPrintTip(true);
-    setTimeout(() => {
-      window.print();
-      // Hide tip after print dialog closes (simulated delay)
-      setTimeout(() => setShowPrintTip(false), 2000);
-    }, 500);
+  const handleDownloadPDF = async () => {
+    if (!atsContent) return;
+    
+    setIsProcessing(true);
+    setError(null);
+    
+    try {
+      // Get the resume preview container
+      const element = document.getElementById("resume-preview-container");
+      if (!element) {
+        throw new Error("Resume preview container not found");
+      }
+
+      // Convert HTML to canvas
+      const canvas = await html2canvas(element, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      // Standard letter size (8.5 x 11 inches)
+      const pdfWidth = 8.5;
+      const pdfHeight = 11;
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "in",
+        format: "letter",
+      });
+
+      // Calculate image dimensions to fit page width
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pageHeight = pdfHeight;
+      
+      // If content fits on one page
+      if (imgHeight <= pageHeight) {
+        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, imgWidth, imgHeight);
+      } else {
+        // Multi-page handling
+        let heightLeft = imgHeight;
+        let position = 0;
+        const imgData = canvas.toDataURL("image/png");
+        
+        // Add first page
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        
+        // Add additional pages if needed
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+      }
+
+      // Download the PDF
+      pdf.save("ATS-Resume.pdf");
+    } catch (err: any) {
+      console.error(err);
+      setError("Failed to generate PDF. " + (err.message || "Please try again."));
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const copyToClipboard = () => {
@@ -137,11 +212,28 @@ const App = () => {
     setFile(null);
     setAtsContent(null);
     setError(null);
-    setShowPrintTip(false);
   };
+
+  const isApiKeyMissing = !ai || !API_KEY || API_KEY === 'your_api_key_here' || API_KEY === '';
 
   return (
     <div className="min-h-screen flex flex-col items-center py-10 px-4 md:px-8 print:p-0 print:block">
+      {/* API Key Warning */}
+      {isApiKeyMissing && (
+        <div className="w-full max-w-4xl mb-6 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg no-print">
+          <div className="flex items-start gap-3">
+            <i className="fa-solid fa-triangle-exclamation text-yellow-600 text-xl mt-0.5"></i>
+            <div className="flex-1">
+              <h3 className="font-bold text-yellow-800 mb-1">API Key Not Configured</h3>
+              <p className="text-sm text-yellow-700">
+                Please create a <code className="bg-yellow-100 px-1 rounded">.env</code> file in the project root with: 
+                <code className="bg-yellow-100 px-1 rounded block mt-1">GEMINI_API_KEY=your_actual_api_key</code>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <header className="mb-10 text-center no-print">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600 text-white mb-4 shadow-lg">
@@ -260,14 +352,6 @@ const App = () => {
                 </button>
               </div>
             </div>
-
-            {/* Print Tip Toast */}
-            {showPrintTip && (
-              <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-[100] bg-gray-900 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-bounce no-print">
-                <i className="fa-solid fa-print"></i>
-                <span>Please select <strong>"Save as PDF"</strong> in the print dialog.</span>
-              </div>
-            )}
 
             {/* Paper Preview */}
             <div 
